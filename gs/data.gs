@@ -1,63 +1,77 @@
-function getMedianSalePrice(quandlApiKey, zipCode) {
+function refreshDefaultValues() {
+    getDefaultMedianSalePrice();
+    getDefaultMortgageInterestRate();
+    getDefaultMortgageFeesAndPoints();
+    getDefaultInflationRate10YrExpected();
+}
+
+function getDefaultMedianSalePrice() {
+    var zipCode = getVariableValue("Zip Code");
+    var defaultMedianSalePriceCell = sVariables.getRange(getVariableCellDefault("Sale Price"));
     if (quandlApiKey && zipCode) {
         var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/ZILL/Z" + zipCode + "_MSP.json?api_key=" + quandlApiKey);
         var dataIndex = dict2dArrayLookup("Data", jsonArray);
         if (jsonArray[1][dataIndex]) {
-            var mspData = jsonArray[1][dataIndex].split(',');
-            var mspNewest = parseFloat(mspData[1]);
-            return mspNewest;
+            var data = jsonArray[1][dataIndex].split(',');
+            var dataNewest = parseFloat(data[1]);
+            defaultMedianSalePriceCell.setValue(dataNewest);
         } else {
-            return "Data for " + zipCode + " N/A";
+            defaultMedianSalePriceCell.setValue("Data for " + zipCode + " N/A");
         }
     } else {
-        return "Invalid Quandl API Key or Zip Code";
+        defaultMedianSalePriceCell.setValue("Invalid Quandl API Key or Zip Code");
     }
 }
 
-function getMortgageRate(quandlApiKey, term) {
+function getDefaultMortgageInterestRate() {
+    var term = getVariableValue("Term");
+    var defaultMortgageRateCell = sVariables.getRange(getVariableCellDefault("Interest Rate"));
     if (quandlApiKey && (term == 15 || term == 30)) {
         var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/FMAC/FIX" + term + "YR.json?api_key=" + quandlApiKey);
         var dataIndex = dict2dArrayLookup("Data", jsonArray);
         if (jsonArray[1][dataIndex]) {
-            var mrData = jsonArray[1][dataIndex].split(',');
-            var mrNewest = parseFloat(mrData[1]) / 100;
-            return mrNewest;
+            var data = jsonArray[1][dataIndex].split(',');
+            var dataNewest = parseFloat(data[1]) / 100;
+            defaultMortgageRateCell.setValue(dataNewest);
         } else {
-            return "Data N/A";
+            defaultMortgageRateCell.setValue("Data N/A");
         }
     } else {
-        return "Invalid Quandl API Key or Term";
+        defaultMortgageRateCell.setValue("Invalid Quandl API Key or Term");
     }
 }
 
-function getMortgageFeesAndPoints(quandlApiKey, term) {
+function getDefaultMortgageFeesAndPoints() {
+    var term = getVariableValue("Term");
+    var defaultMortgageFeesAndPointsCell = sVariables.getRange(getVariableCellDefault("Fees & Points"));
     if (quandlApiKey && (term == 15 || term == 30)) {
         var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/FMAC/FIX" + term + "YR.json?api_key=" + quandlApiKey);
         var dataIndex = dict2dArrayLookup("Data", jsonArray);
         if (jsonArray[1][dataIndex]) {
-            var mrData = jsonArray[1][dataIndex].split(',');
-            var mrNewest = parseFloat(mrData[2]) / 100;
-            return mrNewest;
+            var data = jsonArray[1][dataIndex].split(',');
+            var dataNewest = parseFloat(data[2]) / 100;
+            defaultMortgageFeesAndPointsCell.setValue(dataNewest);
         } else {
-            return "Data N/A";
+            defaultMortgageFeesAndPointsCell.setValue("Data N/A");
         }
     } else {
-        return "Invalid Quandl API Key or Term";
+        defaultMortgageFeesAndPointsCell.setValue("Invalid Quandl API Key or Term");
     }
 }
 
-function getInflationRate10YrExpected(quandlApiKey) {
+function getDefaultInflationRate10YrExpected() {
+    var defaultInflationRate10YrExpectedCell = sVariables.getRange(getVariableCellDefault("Inflation Rate"));
     if (quandlApiKey) {
         var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/FRED/T10YIE.json?api_key=" + quandlApiKey);
         var dataIndex = dict2dArrayLookup("Data", jsonArray);
         if (jsonArray[1][dataIndex]) {
-            var irData = jsonArray[1][dataIndex].split(',');
-            var irNewest = parseFloat(irData[1]) / 100;
-            return irNewest;
+            var data = jsonArray[1][dataIndex].split(',');
+            var dataNewest = parseFloat(data[1]) / 100;
+            defaultInflationRate10YrExpectedCell.setValue(dataNewest);
         } else {
-            return "Data N/A";
+            defaultInflationRate10YrExpectedCell.setValue("Data N/A");
         }
     } else {
-        return "Invalid Quandl API Key";
+        defaultInflationRate10YrExpectedCell.setValue("Invalid Quandl API Key");
     }
 }
