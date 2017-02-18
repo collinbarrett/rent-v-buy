@@ -1,10 +1,4 @@
-var ss = SpreadsheetApp.getActiveSpreadsheet();
-var sVariables = ss.getSheetByName("Variables");
-
-function onOpen() {
-    SpreadsheetApp.getUi().createMenu('Refresh').addItem('Refresh All', 'refreshAll').addSeparator().addItem('Refresh Default Values', 'refreshDefaultValues').addToUi();
-}
-
-function refreshAll() {
-    refreshDefaultValues();
+function onOpen(e) {
+    //Update the date in the README to use as a cache purge parameter for custom functions
+    SpreadsheetApp.getActiveSpreadsheet().getSheetByName("README").getRange('A2').setValue(new Date().toJSON().slice(0, 10).replace(/-/g, '/'));
 }

@@ -1,121 +1,64 @@
-function refreshDefaultValues() {
-    getDefaultInflationRate();
-    getDefaultAppreciationRate();
-    getDefaultSalePrice();
-    getDefaultInterestRate();
-    getDefaultFeesAndPoints();
-}
-
-function getDefaultInflationRate() {
-    var defaultInflationRateCell = sVariables.getRange(getVariableCellDefault("Inflation Rate"));
-    defaultInflationRateCell.setValue("");
-    var quandlApiKey = getVariableValue("Quandl API Key");
-    if (quandlApiKey) {
+function getDefaultInflationRate(quandlApiKey) {
+    var quandlApiKeyValidation = validateQuandlApiKey(quandlApiKey);
+    if (quandlApiKeyValidation == true) {
         var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/FRED/T10YIE.json?api_key=" + quandlApiKey);
         var dataIndex = dict2dArrayLookup("Data", jsonArray);
-        if (jsonArray[1][dataIndex]) {
-            var data = jsonArray[1][dataIndex].split(',');
-            var dataNewest = parseFloat(data[1]) / 100;
-            defaultInflationRateCell.setValue(dataNewest);
-            defaultInflationRateCell.setNumberFormat("0.00%");
-        } else {
-            defaultInflationRateCell.setValue("Data N/A");
-        }
+        return (jsonArray[1][dataIndex]) ? parseFloat((jsonArray[1][dataIndex].split(','))[1]) / 100 : "Data N/A";
     } else {
-        defaultInflationRateCell.setValue("Invalid Quandl API Key");
+        return quandlApiKeyValidation;
     }
 }
 
-function getDefaultAppreciationRate() {
-    var zipCode = getVariableValue("Zip Code");
-    var defaultAppreciationRateCell = sVariables.getRange(getVariableCellDefault("Appreciation Rate"));
-    defaultAppreciationRateCell.setValue("");
-    var cityAndStateSlug = getCityAndStateSlug(zipCode);
-    var zillowScrape = UrlFetchApp.fetch("https://www.zillow.com/" + cityAndStateSlug + "-" + zipCode + "/home-values/").toString();
-    var indexForecast = zillowScrape.indexOf("1-yr forecast");
-    var zillowScrape1stHalf = zillowScrape.substr(0, indexForecast);
-    var zillowScrapeAppreciationRateFuzzy = zillowScrape1stHalf.substr(zillowScrape1stHalf.length - 100, 100);
-    var indexAppreciationRatePercent = zillowScrapeAppreciationRateFuzzy.indexOf("%");
-    var appreciationRate = parseFloat(zillowScrapeAppreciationRateFuzzy.substr(indexAppreciationRatePercent - 5, 5).trim()) / 100;
-    if (appreciationRate) {
-        defaultAppreciationRateCell.setValue(appreciationRate);
-        defaultAppreciationRateCell.setNumberFormat("0.0%");
-    } else {
-        defaultAppreciationRateCell.setValue("Data N/A");
-    }
+function getDefaultAppreciationRate(quandlApiKey, zipCode) {
+    var zillowScrape = UrlFetchApp.fetch("https://www.zillow.com/" + getCityAndStateSlug(zipCode) + "-" + zipCode + "/home-values/").toString();
+    zillowScrape = zillowScrape.substr(0, zillowScrape.indexOf("1-yr forecast"));
+    zillowScrape = zillowScrape.substr(zillowScrape.length - 100, 100);
+    var appreciationRate = parseFloat(zillowScrape.substr(zillowScrape.indexOf("%") - 5, 5).trim()) / 100;
+    return (appreciationRate) ? appreciationRate : "Data N/A";
 }
 
 function getCityAndStateSlug(zipCode) {
-    var geocodeJson = UrlFetchApp.fetch("https://maps.googleapis.com/maps/api/geocode/json?address=" + zipCode).toString();
-    var indexFormattedAddress = geocodeJson.indexOf("formatted_address");
-    var geocodeJson2ndHalf = geocodeJson.substr(indexFormattedAddress + 22);
-    var geocodeJsonArray = geocodeJson2ndHalf.split(',');
+    //TEMP: retry loop to get around free Google API limits, could rapidly expire daily quota, needs refactor
+    var geocodeJson = "exceeded";
+    while (geocodeJson.indexOf("exceeded") > -1) {
+        geocodeJson = UrlFetchApp.fetch("https://maps.googleapis.com/maps/api/geocode/json?address=" + zipCode).toString();
+    }
+    var geocodeJsonArray = geocodeJson.substr(geocodeJson.indexOf("formatted_address") + 22).split(',');
     var city = geocodeJsonArray[0].toString().toLowerCase();
     var stateAndZip = geocodeJsonArray[1].toString().substr(1);
     var state = stateAndZip.substr(0, stateAndZip.length - 6).toLowerCase();
-    var cityAndStateSlug = city + "-" + state;
-    return cityAndStateSlug;
+    return city + "-" + state;
 }
 
-function getDefaultSalePrice() {
-    var zipCode = getVariableValue("Zip Code");
-    var defaultSalePriceCell = sVariables.getRange(getVariableCellDefault("Sale Price"));
-    defaultSalePriceCell.setValue("");
-    var quandlApiKey = getVariableValue("Quandl API Key");
-    if (quandlApiKey && zipCode) {
+function getDefaultSalePrice(quandlApiKey, zipCode) {
+    var quandlApiKeyValidation = validateQuandlApiKey(quandlApiKey);
+    if (quandlApiKeyValidation == true && zipCode) {
         var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/ZILL/Z" + zipCode + "_MSP.json?api_key=" + quandlApiKey);
         var dataIndex = dict2dArrayLookup("Data", jsonArray);
-        if (jsonArray[1][dataIndex]) {
-            var data = jsonArray[1][dataIndex].split(',');
-            var dataNewest = parseFloat(data[1]);
-            defaultSalePriceCell.setValue(dataNewest);
-            defaultSalePriceCell.setNumberFormat("$0,000.00");
-        } else {
-            defaultSalePriceCell.setValue("Data for " + zipCode + " N/A");
-        }
+        return (jsonArray[1][dataIndex]) ? parseFloat((jsonArray[1][dataIndex].split(','))[1]) : "Data for " + zipCode + " N/A";
     } else {
-        defaultSalePriceCell.setValue("Invalid Quandl API Key or Zip Code");
+        return quandlApiKeyValidation;
     }
 }
 
-function getDefaultInterestRate() {
-    var term = getVariableValue("Term");
-    var defaultInterestRateCell = sVariables.getRange(getVariableCellDefault("Interest Rate"));
-    defaultInterestRateCell.setValue("");
-    var quandlApiKey = getVariableValue("Quandl API Key");
-    if (quandlApiKey && (term == 15 || term == 30)) {
+function getDefaultInterestRate(quandlApiKey, term) {
+    var quandlApiKeyValidation = validateQuandlApiKey(quandlApiKey);
+    if (quandlApiKeyValidation == true && (term == 15 || term == 30)) {
         var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/FMAC/FIX" + term + "YR.json?api_key=" + quandlApiKey);
         var dataIndex = dict2dArrayLookup("Data", jsonArray);
-        if (jsonArray[1][dataIndex]) {
-            var data = jsonArray[1][dataIndex].split(',');
-            var dataNewest = parseFloat(data[1]) / 100;
-            defaultInterestRateCell.setValue(dataNewest);
-            defaultInterestRateCell.setNumberFormat("0.00%");
-        } else {
-            defaultInterestRateCell.setValue("Data N/A");
-        }
+        return (jsonArray[1][dataIndex]) ? parseFloat((jsonArray[1][dataIndex].split(','))[1]) / 100 : "Data N/A";
     } else {
-        defaultInterestRateCell.setValue("Invalid Quandl API Key or Term");
+        return quandlApiKeyValidation;
     }
 }
 
-function getDefaultFeesAndPoints() {
-    var term = getVariableValue("Term");
-    var defaultFeesAndPointsCell = sVariables.getRange(getVariableCellDefault("Fees & Points"));
-    defaultFeesAndPointsCell.setValue("");
-    var quandlApiKey = getVariableValue("Quandl API Key");
-    if (quandlApiKey && (term == 15 || term == 30)) {
+function getDefaultFeesAndPoints(quandlApiKey, term) {
+    var quandlApiKeyValidation = validateQuandlApiKey(quandlApiKey);
+    if (quandlApiKeyValidation == true && (term == 15 || term == 30)) {
         var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/FMAC/FIX" + term + "YR.json?api_key=" + quandlApiKey);
         var dataIndex = dict2dArrayLookup("Data", jsonArray);
-        if (jsonArray[1][dataIndex]) {
-            var data = jsonArray[1][dataIndex].split(',');
-            var dataNewest = parseFloat(data[2]) / 100;
-            defaultFeesAndPointsCell.setValue(dataNewest);
-            defaultFeesAndPointsCell.setNumberFormat("0.00%");
-        } else {
-            defaultFeesAndPointsCell.setValue("Data N/A");
-        }
+        return (jsonArray[1][dataIndex]) ? parseFloat((jsonArray[1][dataIndex].split(','))[2]) / 100 : "Data N/A";
     } else {
-        defaultFeesAndPointsCell.setValue("Invalid Quandl API Key or Term");
+        return quandlApiKeyValidation;
     }
 }
