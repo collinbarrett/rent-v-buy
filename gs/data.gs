@@ -1,7 +1,11 @@
 function getDefaultInflationRate(quandlApiKey) {
     var quandlApiKeyValidation = validateQuandlApiKey(quandlApiKey);
     if (quandlApiKeyValidation == true) {
-        var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/FRED/T10YIE.json?api_key=" + quandlApiKey);
+        try {
+            var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/FRED/T10YIE.json?api_key=" + quandlApiKey);
+        } catch (err) {
+            return "Data N/A";
+        }
         var dataIndex = dict2dArrayLookup("Data", jsonArray);
         return (jsonArray[1][dataIndex]) ? parseFloat((jsonArray[1][dataIndex].split(','))[1]) / 100 : "Data N/A";
     } else {
@@ -10,6 +14,7 @@ function getDefaultInflationRate(quandlApiKey) {
 }
 
 function getDefaultAppreciationRate(quandlApiKey, zipCode) {
+    //ZHVF is unavailable via API, so resort to scraping
     var zillowScrape = UrlFetchApp.fetch("https://www.zillow.com/" + getCityAndStateSlug(zipCode) + "-" + zipCode + "/home-values/").toString();
     zillowScrape = zillowScrape.substr(0, zillowScrape.indexOf("1-yr forecast"));
     zillowScrape = zillowScrape.substr(zillowScrape.length - 100, 100);
@@ -30,10 +35,29 @@ function getCityAndStateSlug(zipCode) {
     return city + "-" + state;
 }
 
+function getDefaultPriceToRentRatio(quandlApiKey, zipCode) {
+    var quandlApiKeyValidation = validateQuandlApiKey(quandlApiKey);
+    if (quandlApiKeyValidation == true && zipCode) {
+        try {
+            var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/ZILL/Z" + zipCode + "_PRR.json?api_key=" + quandlApiKey);
+        } catch (err) {
+            return "Data for " + zipCode + " N/A";
+        }
+        var dataIndex = dict2dArrayLookup("Data", jsonArray);
+        return (jsonArray[1][dataIndex]) ? parseFloat((jsonArray[1][dataIndex].split(','))[1]) : "Data for " + zipCode + " N/A";
+    } else {
+        return quandlApiKeyValidation;
+    }
+}
+
 function getDefaultSalePrice(quandlApiKey, zipCode) {
     var quandlApiKeyValidation = validateQuandlApiKey(quandlApiKey);
     if (quandlApiKeyValidation == true && zipCode) {
-        var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/ZILL/Z" + zipCode + "_MSP.json?api_key=" + quandlApiKey);
+        try {
+            var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/ZILL/Z" + zipCode + "_MSP.json?api_key=" + quandlApiKey);
+        } catch (err) {
+            return "Data for " + zipCode + " N/A";
+        }
         var dataIndex = dict2dArrayLookup("Data", jsonArray);
         return (jsonArray[1][dataIndex]) ? parseFloat((jsonArray[1][dataIndex].split(','))[1]) : "Data for " + zipCode + " N/A";
     } else {
@@ -44,7 +68,11 @@ function getDefaultSalePrice(quandlApiKey, zipCode) {
 function getDefaultInterestRate(quandlApiKey, term) {
     var quandlApiKeyValidation = validateQuandlApiKey(quandlApiKey);
     if (quandlApiKeyValidation == true && (term == 15 || term == 30)) {
-        var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/FMAC/FIX" + term + "YR.json?api_key=" + quandlApiKey);
+        try {
+            var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/FMAC/FIX" + term + "YR.json?api_key=" + quandlApiKey);
+        } catch (err) {
+            return "Data for " + term + " N/A";
+        }
         var dataIndex = dict2dArrayLookup("Data", jsonArray);
         return (jsonArray[1][dataIndex]) ? parseFloat((jsonArray[1][dataIndex].split(','))[1]) / 100 : "Data N/A";
     } else {
@@ -55,7 +83,11 @@ function getDefaultInterestRate(quandlApiKey, term) {
 function getDefaultFeesAndPoints(quandlApiKey, term) {
     var quandlApiKeyValidation = validateQuandlApiKey(quandlApiKey);
     if (quandlApiKeyValidation == true && (term == 15 || term == 30)) {
-        var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/FMAC/FIX" + term + "YR.json?api_key=" + quandlApiKey);
+        try {
+            var jsonArray = ImportJSON("https://www.quandl.com/api/v3/datasets/FMAC/FIX" + term + "YR.json?api_key=" + quandlApiKey);
+        } catch (err) {
+            return "Data for " + term + " N/A";
+        }
         var dataIndex = dict2dArrayLookup("Data", jsonArray);
         return (jsonArray[1][dataIndex]) ? parseFloat((jsonArray[1][dataIndex].split(','))[2]) / 100 : "Data N/A";
     } else {
