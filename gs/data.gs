@@ -13,13 +13,13 @@ function getDefaultInflationRate(quandlApiKey) {
     }
 }
 
-function getDefaultAppreciationRate(quandlApiKey, zipCode) {
+function getDefaultAppreciationRate(zipCode) {
     //ZHVF is unavailable via API, so resort to scraping
     var zillowScrape = UrlFetchApp.fetch("https://www.zillow.com/" + getCityAndStateSlug(zipCode) + "-" + zipCode + "/home-values/").toString();
     zillowScrape = zillowScrape.substr(0, zillowScrape.indexOf("1-yr forecast"));
     zillowScrape = zillowScrape.substr(zillowScrape.length - 100, 100);
     var appreciationRate = parseFloat(zillowScrape.substr(zillowScrape.indexOf("%") - 5, 5).trim()) / 100;
-    return (appreciationRate) ? appreciationRate : "Data N/A";
+    return (appreciationRate) ? appreciationRate : "Data for " + zipCode + " N/A";
 }
 
 function getCityAndStateSlug(zipCode) {
